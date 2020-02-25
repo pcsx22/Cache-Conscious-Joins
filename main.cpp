@@ -9,7 +9,7 @@
 #include <string>
 #include <math.h>
 #include <emmintrin.h>
-#include "clhash/include/clhash.h"
+#include <string.h>
 #include "general.h"
 #include "hash_approach.h"
 using namespace std;
@@ -276,8 +276,8 @@ void basicSort(int * col1, int * col2, int c1, int c2){
 }
 
 int main(int argc, char ** argv){
-    if (argc < 5){
-        cout << "Wrong number of argument. Use ./join fileA fileB operator";
+    if (argc < 6){
+        cout << "Wrong number of argument. Use ./join num_of_elements func_name fileA fileB operator";
         return 0;
     }
     int cacheSize = 12000;
@@ -285,10 +285,11 @@ int main(int argc, char ** argv){
     int inputSize = stoi(argv[1]) * 1000;
     int * col1 = new int[inputSize];
     int * col2 = new int[inputSize];
-    char * file1 = argv[2];
-    char * file2 = argv[3];
-    char * condition = argv[4];
-    if (argc == 6){
+    char * funcName = argv[2];
+    char * file1 = argv[3];
+    char * file2 = argv[4];
+    char * condition = argv[5];
+    if (argc == 7){
         pNo = stoi(argv[5]);
     }
     ifstream reader;
@@ -304,13 +305,21 @@ int main(int argc, char ** argv){
     }
     reader.close();
     reader1.close();
-    //basicLoop(col1, col2, c1, c2);
-    //loopOverBlock(col1, col2, c1, c2, cacheSize);
-    //bitSetAlgo(col1, col2, c1, c2);
-    //partitionSort2(col1, col2, c1, c2, pNo);
-    basicSort(col1, col2, c1, c2);
-    //partionedHash(col1, col2, c1, c2, pNo);
-    //basicHash(col1, col2, c1, c2);
+    if (strcmp(funcName, "basicNestedLoop") == 0){
+        basicLoop(col1, col2, c1, c2);
+    } else if (strcmp(funcName, "blockedNestedLoop") == 0){
+        loopOverBlock(col1, col2, c1, c2, cacheSize);
+    } else if (strcmp(funcName, "partitionedSort") == 0){
+        partitionSort2(col1, col2, c1, c2, pNo);    
+    } else if (strcmp(funcName, "basicSort") == 0){
+        basicSort(col1, col2, c1, c2);
+    } else if (strcmp(funcName, "partitionedHash") == 0) {
+      partionedHash(col1, col2, c1, c2, pNo);  
+    } else if (strcmp(funcName, "basicHash") == 0) {
+      basicHash(col1, col2, c1, c2);  
+    } else {
+        cout << "Invalid function name" << endl;
+    }
     free(col1);
     free(col2);
     return 0;
