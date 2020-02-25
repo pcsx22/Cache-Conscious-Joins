@@ -53,6 +53,6 @@ int main(int argc, char ** argv){
         op1[i] = x;
         seen1.insert(x);
     }
-    writeToFile(op, "file3");
-    writeToFile(op1, "file4");
+    writeToFile(op, "file1");
+    writeToFile(op1, "file2");
 }
