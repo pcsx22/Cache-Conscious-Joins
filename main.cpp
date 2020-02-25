@@ -211,11 +211,13 @@ void partition(int * c1, int * c2, int n1, int n2, int partitons, custom_contain
         buff1.push_back(p1, c1[i]);
         buff1.manageWriteBuff(p1);
     }
+    buff1.flushAll();
     for (int i = 0; i < n2; i += 1){
         p1 = c2[i] % partitons;
         buff2.push_back(p1, c2[i]);
         buff2.manageWriteBuff(p1);
     }
+    buff2.flushAll();
 }
 
 
@@ -229,6 +231,7 @@ void partitionSort2(int * c1, int * c2, int n1, int n2, int partitions) {
     custom_container buff2(partitions, bufSize, &container2);
     //partition the elements
     partition(c1,c2,n1,n2,pNo,buff1,buff2);
+
     int match = 0;
     for (int p = 0; p < partitions; p++){
         int * col1 = container1.getPartition(p);

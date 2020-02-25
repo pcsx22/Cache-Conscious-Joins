@@ -45,25 +45,35 @@ class custom_container {
     void insert(int partition, int * els, int n){
         int * p = this->getPartition(partition);
         int& h = this->head[partition];
-        //p = p + h;
+        p = p + h;
         for(int i = 0; i < n; i++){
             if (h == this->bufSize){
                 cout << "Partition: " << partition <<" Buffer Overflow" << endl;
                 exit(1);
             }
-            p[h++] = els[i];
-            //_mm_stream_si32(p, els[i]);
-            //p++;
-            //h++;
-
+            //p[h++] = els[i];
+            _mm_stream_si32(p, els[i]);
+            p++;
+            h++;
         }
     }
 
+    void flush(int p){
+        int * pAddr = this->container + p * this->bufSize;
+        if (this->head[p] > 0)
+            this->mainC->insert(p, pAddr, this->head[p]);
+        this->head[p] = 0;
+    }
+    
     void manageWriteBuff(int partition){
         if (this->head[partition] == this->bufSize){
-            int * pAddr = this->container + partition * this->bufSize;
-            this->mainC->insert(partition, pAddr, this->head[partition]);
-            this->head[partition] = 0;
+            this->flush(partition);
+        }
+    }
+
+    void flushAll(){
+        for(int i = 0;i < this->partition; i++){
+            this->flush(i);
         }
     }
 
