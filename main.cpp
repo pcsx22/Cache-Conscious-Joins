@@ -13,7 +13,7 @@
 #include "general.h"
 #include "hash_approach.h"
 using namespace std;
-int pNo = 11;
+int pNo = 127;
 //TODO: Add Loop Unrolling to introduce instruction level parallelism
 
 void bitSetAlgo(int * arr1, int * arr2, int c1, int c2){
@@ -293,7 +293,7 @@ int main(int argc, char ** argv){
     char * file2 = argv[4];
     char * condition = argv[5];
     if (argc == 7){
-        pNo = stoi(argv[5]);
+        pNo = stoi(argv[6]);
     }
     ifstream reader;
     reader.open(file1);

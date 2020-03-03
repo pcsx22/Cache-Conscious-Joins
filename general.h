@@ -3,6 +3,7 @@
 #include <iostream>
 #include <emmintrin.h>
 using namespace std;
+
 class custom_container {
     public:
     int * container;
@@ -97,5 +98,89 @@ class custom_container {
     ~custom_container(){
         free(this->container);
         free(this->head);
+    }
+};
+
+#define HASH_BIT_MODULO(K, MASK, NBITS) (((K) & MASK) >> NBITS)
+
+#ifndef NEXT_POW_2
+/** 
+ *  compute the next number, greater than or equal to 32-bit unsigned v.
+ *  taken from "bit twiddling hacks":
+ *  http://graphics.stanford.edu/~seander/bithacks.html
+ */
+#define NEXT_POW_2(V)                           \
+    do {                                        \
+        V--;                                    \
+        V |= V >> 1;                            \
+        V |= V >> 2;                            \
+        V |= V >> 4;                            \
+        V |= V >> 8;                            \
+        V |= V >> 16;                           \
+        V++;                                    \
+    } while(0)
+#endif
+
+inline 
+uint32_t 
+get_hist_size(uint32_t relSize) 
+{
+    NEXT_POW_2(relSize);
+    relSize >>= 2;
+    if(relSize < 4) relSize = 4; 
+    return relSize;
+}
+
+
+class CustomHashTable{
+    public:
+    int * container;
+    int size;
+    uint32_t nSize;
+    uint32_t mask;
+    CustomHashTable(int n){
+        this->size = n;
+        this->container = new int[n];
+        this->nSize = get_hist_size(this->size);
+        this->mask = (nSize-1) << 18;
+    }
+
+    void insert(int el){
+        uint32_t idx = HASH_BIT_MODULO(el, this->mask, 18);
+        if (this->container[idx] != 0){
+            while (this->container[idx] != 0){
+                idx++;
+            }
+        }
+        this->container[idx] = el;
+    }
+
+    int find(int el){
+        int idx = HASH_BIT_MODULO(el, this->mask, 18);
+        if (this->container[idx] == 0){
+            return -1;
+        }
+        while (this->container[idx] != el and idx < this->size){
+            idx++;
+        }
+        if (idx == this->size){
+            return -1;
+        } else {
+            return idx;
+        }
+    }
+
+    int end(){
+        return -1;
+    }
+
+    void flush(){
+        for (int i = 0; i < this->size; i++){
+            this->container[i] = 0;
+        }
+    }
+
+    ~CustomHashTable(){
+        free(this->container);
     }
 };
