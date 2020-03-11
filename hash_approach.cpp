@@ -1,5 +1,4 @@
 #include <unordered_set>
-#include <google/dense_hash_set>
 #include<algorithm>
 #include<iostream>
 #include <chrono>
@@ -40,9 +39,9 @@ void hashPartition(int * c1, int * c2, int n1, int n2, int partitons, custom_con
 }
 void probeTableSerial(custom_container &buff1, custom_container &buff2, int pSize, int partitions){
     int threadNums = 8;
-    google::dense_hash_set<int> exists(pSize);
-    exists.set_empty_key(NULL);
-    exists.set_deleted_key(-1);
+    unordered_set <int> exists(pSize);
+    // exists.set_empty_key(NULL);
+    // exists.set_deleted_key(-1);
     int cnt = 0;
     for(int i = 0; i < partitions; i++){
         int * col1 = buff1.getPartition(i);
@@ -63,8 +62,8 @@ void probeTableSerial(custom_container &buff1, custom_container &buff2, int pSiz
             }
         }
         exists.clear();
-        exists.resize(pSize);
-        //exists.reserve(s1);
+        // exists.resize(pSize);
+        exists.reserve(s1);
         //exists.flush();
     }
         cout << "Matched: " << cnt << endl;
@@ -72,11 +71,11 @@ void probeTableSerial(custom_container &buff1, custom_container &buff2, int pSiz
 
 void probeTableParallel(custom_container &buff1, custom_container &buff2, int pSize, int partitions){
     int threadNums = 8;
-    vector<google::dense_hash_set<int>* >hList(threadNums);
+    vector<unordered_set<int>* >hList(threadNums);
     for(int i = 0; i < threadNums; i++){
-        hList[i] = new google::dense_hash_set<int>(pSize);
-        hList[i]->set_empty_key(NULL);
-        hList[i]->set_deleted_key(-1);    
+        hList[i] = new unordered_set<int>(pSize);
+        // hList[i]->set_empty_key(NULL);
+        // hList[i]->set_deleted_key(-1);    
     }
     int cnt = 0;
     #pragma omp parallel for num_threads(threadNums) reduction(+: cnt)
@@ -98,7 +97,7 @@ void probeTableParallel(custom_container &buff1, custom_container &buff2, int pS
             }
         }
         hList[tId]->clear();
-        hList[tId]->resize(pSize);
+        hList[tId]->reserve(pSize);
     }
         cout << "Matched: " << cnt << endl;
 }
