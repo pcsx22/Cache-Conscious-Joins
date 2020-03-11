@@ -7,11 +7,14 @@
 #include <bitset>
 #include <unordered_map>
 #include <string>
+#include <functional>
 #include <math.h>
 #include <emmintrin.h>
 #include <string.h>
+#include <omp.h>
 #include "general.h"
 #include "hash_approach.h"
+#include "sort_approach.h"
 using namespace std;
 int pNo = 127;
 //TODO: Add Loop Unrolling to introduce instruction level parallelism
@@ -201,81 +204,60 @@ void basicLoop(int * arr1, int * arr2, int & c1, int & c2){
 //     }
 // }
 
-void partition(int * c1, int * c2, int n1, int n2, int partitons, custom_container & buff1, custom_container & buff2){
-    int p1;
-    int p2;
-    int p3;
-    int p4;
-    for (int i = 0; i < n1; i += 1){
-        p1 = c1[i] % partitons;
-        buff1.push_back(p1, c1[i]);
-        buff1.manageWriteBuff(p1);
-    }
-    buff1.flushAll();
-    for (int i = 0; i < n2; i += 1){
-        p1 = c2[i] % partitons;
-        buff2.push_back(p1, c2[i]);
-        buff2.manageWriteBuff(p1);
-    }
-    buff2.flushAll();
-}
-
-
-void partitionSort2(int * c1, int * c2, int n1, int n2, int partitions) {
-    int pSize1 = (10) * (n1/partitions);
-    int pSize2 = (10) * (n2/partitions);
-    int bufSize = (150*256/partitions);
-    custom_container container1(partitions, pSize1, (custom_container *)NULL);
-    custom_container container2(partitions, pSize2, (custom_container *)NULL);
-    custom_container buff1(partitions, bufSize, &container1);
-    custom_container buff2(partitions, bufSize, &container2);
-    //partition the elements
-    partition(c1,c2,n1,n2,pNo,buff1,buff2);
-
-    int match = 0;
-    for (int p = 0; p < partitions; p++){
-        int * col1 = container1.getPartition(p);
-        int * col2 = container2.getPartition(p);
-        int head1 = container1.getPartitionSize(p);
-        int head2 = container2.getPartitionSize(p);
-        sort(col1, col1 + head1);
-        sort(col2, col2 + head2);
-        int i = 0; int j = 0;
-        while (i < head1 && j < head2){
-            if (col1[i] < col2[j]){
-                i++;
-            } else if (col1[i] > col2[j]){
-                j++;
-            } else{
-                match++;
-                j++;
-                i++;
+void readFile(char * file1, char * file2, int * col1, int * col2, int *c1, int *c2, int inputSize){
+    char * file;
+    int * container;
+    ifstream reader1(file1);
+    ifstream reader2(file2);
+    for (int f = 0; f < 2; f++){
+        int * c;
+        ifstream * reader;
+        if (f == 0){
+            file = file1;
+            container = col1;
+            c = c1;
+            reader = &reader1;
+        } else {
+            file = file2;
+            container = col2;
+            c = c2;
+            reader = &reader2;
+        }
+        
+        int lc = 0;
+        int item = 0;
+        char buf[2048];
+        while(!reader->eof() && *c < inputSize)
+        {
+            reader->read(buf, sizeof(buf));
+            uint64_t k = reader->gcount();
+            for (uint64_t i = 0; i < k && *c < inputSize; ++i)
+            {
+                switch (buf[i])
+                {
+                    case '\r':
+                        break;
+                    case '\n':
+                        item = 0;
+                        break;
+                    case ' ':
+                        container[*c] = item;
+                        *c = *c + 1;
+                        item = 0;
+                        break;
+                    case '0': case '1': case '2': case '3':
+                    case '4': case '5': case '6': case '7':
+                    case '8': case '9':
+                        item = 10*item + buf[i] - '0';
+                        break;
+                    default:
+                        std::cerr << "Bad format\n";
+                }    
             }
         }
+            reader->close();
+            reader->clear();
     }
-    cout << "Matched: " << match <<endl;
-}
-
-
-void basicSort(int * col1, int * col2, int c1, int c2){
-    int cnt = 0;
-    sort(col1, col1 + c1);
-    sort(col2, col2 + c2);
-    int i = 0;
-    int j = 0;
-    for(; i < c1 && j < c2;){
-        if (col1[i] < col2[j]){
-            i += 1;
-        }
-        else if (col1[i] > col2[j]){
-            j += 1;
-        } else {
-            i += 1;
-            j += 1;
-            cnt += 1;     
-        }
-    }
-    cout << cnt << endl;
 }
 
 int main(int argc, char ** argv){
@@ -285,9 +267,9 @@ int main(int argc, char ** argv){
     }
     int cacheSize = 12000;
     int partitionSize = 1200;
-    int inputSize = stoi(argv[1]) * 1000;
-    int * col1 = new int[inputSize];
-    int * col2 = new int[inputSize];
+    int inputSize = pow(10, stoi(argv[1]));
+    int * col1 = new int[inputSize + inputSize/100];
+    int * col2 = new int[inputSize + inputSize/100];
     char * funcName = argv[2];
     char * file1 = argv[3];
     char * file2 = argv[4];
@@ -295,35 +277,32 @@ int main(int argc, char ** argv){
     if (argc == 7){
         pNo = stoi(argv[6]);
     }
-    ifstream reader;
-    reader.open(file1);
-    int x;
     int c1 = 0;
-    while (c1 < inputSize && reader >> col1[c1++]){
-    }
-    ifstream reader1;
-    reader1.open(file2);
     int c2 = 0;
-    while (c2 < inputSize && reader1 >> col2[c2++]){
-    }
-    reader.close();
-    reader1.close();
+    readFile(file1, file2, col1, col2, &c1, &c2, inputSize);
     if (strcmp(funcName, "basicNestedLoop") == 0){
         basicLoop(col1, col2, c1, c2);
     } else if (strcmp(funcName, "blockedNestedLoop") == 0){
         loopOverBlock(col1, col2, c1, c2, cacheSize);
-    } else if (strcmp(funcName, "partitionedSort") == 0){
-        partitionSort2(col1, col2, c1, c2, pNo);    
-    } else if (strcmp(funcName, "basicSort") == 0){
+    } else if (strcmp(funcName, "partitionedSortSerial") == 0){
+        partitionedSortSerial(col1, col2, c1, c2, pNo);
+    }
+    else if (strcmp(funcName, "partitionedSortParallel") == 0){
+        partitionedSortParallel(col1, col2, c1, c2, pNo);
+    }
+    else if (strcmp(funcName, "basicSort") == 0){
         basicSort(col1, col2, c1, c2);
-    } else if (strcmp(funcName, "partitionedHash") == 0) {
-      partionedHash(col1, col2, c1, c2, pNo);  
-    } else if (strcmp(funcName, "basicHash") == 0) {
+    } else if (strcmp(funcName, "partitionedHashSerial") == 0) {
+      partitionedHash(col1, col2, c1, c2, pNo, true);  
+    } else if (strcmp(funcName, "partitionedHashParallel") == 0) {
+      partitionedHash(col1, col2, c1, c2, pNo, false);  
+    }
+    else if (strcmp(funcName, "basicHash") == 0) {
       basicHash(col1, col2, c1, c2);  
     } else {
         cout << "Invalid function name" << endl;
     }
-    free(col1);
-    free(col2);
+    delete[] col1;
+    delete[] col2;
     return 0;
 }

@@ -135,13 +135,15 @@ get_hist_size(uint32_t relSize)
 class CustomHashTable{
     public:
     int * container;
+    int * next;
     int size;
     uint32_t nSize;
     uint32_t mask;
     CustomHashTable(int n){
         this->size = n;
-        this->container = new int[n];
-        this->nSize = get_hist_size(this->size);
+        this->nSize = get_hist_size(n);
+        this->container = new int[nSize];
+        this->next = new int[n];
         this->mask = (nSize-1) << 18;
     }
 
@@ -184,3 +186,15 @@ class CustomHashTable{
         free(this->container);
     }
 };
+
+inline bool processEquality(int a, int b){
+    return a == b;
+}
+
+inline bool processGreaterThan(int a, int b){
+    return a > b;
+}
+
+inline bool processLessThan(int a, int b){
+    return a < b;
+}

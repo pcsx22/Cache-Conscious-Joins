@@ -3,6 +3,7 @@
 #include<algorithm>
 #include<iostream>
 #include <chrono>
+#include<omp.h>
 #include "hash_approach.h"
 #include "general.h"
 using namespace std;
@@ -37,10 +38,9 @@ void hashPartition(int * c1, int * c2, int n1, int n2, int partitons, custom_con
     }
     buff2.flushAll();
 }
-void probeTable(custom_container &buff1, custom_container &buff2, int pSize, int partitions){
+void probeTableSerial(custom_container &buff1, custom_container &buff2, int pSize, int partitions){
+    int threadNums = 8;
     google::dense_hash_set<int> exists(pSize);
-    //CustomHashTable exists(pSize1);
-    //exists.min_load_factor(0.0);
     exists.set_empty_key(NULL);
     exists.set_deleted_key(-1);
     int cnt = 0;
@@ -48,6 +48,7 @@ void probeTable(custom_container &buff1, custom_container &buff2, int pSize, int
         int * col1 = buff1.getPartition(i);
         int s1 = buff1.getPartitionSize(i);
         //build hash table for col1
+        int tId = omp_get_thread_num();
         for (int j = 0; j < s1; j++){
             exists.insert(col1[j]);
         }
@@ -68,7 +69,41 @@ void probeTable(custom_container &buff1, custom_container &buff2, int pSize, int
     }
         cout << "Matched: " << cnt << endl;
 }
-void partionedHash(int * c1, int * c2, int n1, int n2, int partitions){
+
+void probeTableParallel(custom_container &buff1, custom_container &buff2, int pSize, int partitions){
+    int threadNums = 8;
+    vector<google::dense_hash_set<int>* >hList(threadNums);
+    for(int i = 0; i < threadNums; i++){
+        hList[i] = new google::dense_hash_set<int>(pSize);
+        hList[i]->set_empty_key(NULL);
+        hList[i]->set_deleted_key(-1);    
+    }
+    int cnt = 0;
+    #pragma omp parallel for num_threads(threadNums) reduction(+: cnt)
+    for(int i = 0; i < partitions; i++){
+        int * col1 = buff1.getPartition(i);
+        int s1 = buff1.getPartitionSize(i);
+        //build hash table for col1
+        int tId = omp_get_thread_num();
+        for (int j = 0; j < s1; j++){
+            hList[tId]->insert(col1[j]);
+        }
+
+        int * col2 = buff2.getPartition(i);
+        int s2 = buff2.getPartitionSize(i);
+        //probe for col2
+        for (int j = 0; j < s2; j++){
+            if (hList[tId]->find(col2[j]) != hList[tId]->end()){
+                cnt++;
+            }
+        }
+        hList[tId]->clear();
+        hList[tId]->resize(pSize);
+    }
+        cout << "Matched: " << cnt << endl;
+}
+
+void partitionedHash(int * c1, int * c2, int n1, int n2, int partitions, bool serial){
     int pSize1 = (2) * (n1/partitions);
     int pSize2 = (2) * (n2/partitions);
     int bufSize = (110*256/partitions);
@@ -84,8 +119,16 @@ void partionedHash(int * c1, int * c2, int n1, int n2, int partitions){
     std::cout << "Partition Time: " << elapsed.count() << " seconds" << std::endl;
     //unordered_set<int> exists(pSize1);
     start = std::chrono::high_resolution_clock::now();
-    probeTable(container1, container2, pSize1, partitions);
+    if (serial){
+        probeTableParallel(container1, container2, pSize1, partitions);    
+    } else {
+        probeTableParallel(container1, container2, pSize1, partitions);    
+    }
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
     std::cout << "Probe Time: " << elapsed.count() << " seconds" << std::endl;
+}
+
+void probeBucketTable(custom_container &buff1, custom_container &buff2, int pSize, int partitions){
+    
 }

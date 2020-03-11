@@ -28,7 +28,7 @@ int main(int argc, char ** argv){
     mt19937 mt(rd());
     inputSize = inputSize * 1000;
     vector<long> op(inputSize);
-    uniform_real_distribution<double> dist(0, inputSize*10);
+    uniform_real_distribution<double> dist(0, 5*inputSize);
     unordered_set<long> seen;
     std::unordered_set<long>::iterator it;
     long x;
