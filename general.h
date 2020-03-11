@@ -1,6 +1,7 @@
 #include <unordered_map>
 #include <vector>
 #include <iostream>
+#include<omp.h>
 #include <emmintrin.h>
 using namespace std;
 
@@ -39,28 +40,29 @@ class custom_container {
     }
 
     void push_back(int partition, int el){
+        //int j = __sync_fetch_and_add(this->head + partition, 1);
         this->container[partition * this->bufSize + this->head[partition]] = el;
         this->head[partition] += 1;
     }
 
     void insert(int partition, int * els, int n){
         int * p = this->getPartition(partition);
-        int& h = this->head[partition];
+        //int& h = this->head[partition];
+        int j = __atomic_add_fetch(this->head + partition, n, __ATOMIC_ACQUIRE);
+        int h = j - n;
         p = p + h;
         for(int i = 0; i < n; i++){
-            if (h == this->bufSize){
-                cout << "Partition: " << partition <<" Buffer Overflow" << endl;
-                exit(1);
-            }
             //p[h++] = els[i];
             _mm_stream_si32(p, els[i]);
             p++;
-            h++;
+            //h++;
         }
     }
+    
 
     void flush(int p){
         int * pAddr = this->container + p * this->bufSize;
+
         if (this->head[p] > 0)
             this->mainC->insert(p, pAddr, this->head[p]);
         this->head[p] = 0;
@@ -186,6 +188,7 @@ class CustomHashTable{
         free(this->container);
     }
 };
+
 
 inline bool processEquality(int a, int b){
     return a == b;

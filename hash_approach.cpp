@@ -102,6 +102,38 @@ void probeTableParallel(custom_container &buff1, custom_container &buff2, int pS
         cout << "Matched: " << cnt << endl;
 }
 
+void hashPartitionParallel(int * c1, int * c2, int n1, int n2, int partitions, custom_container * container1, custom_container * container2){
+    int threads = 8;
+    custom_container * buffers[threads];
+    int buffSize = 200;
+    for (int i = 0; i < threads; i++){
+        buffers[i] = new custom_container(partitions, buffSize, container1);
+    }
+    #pragma omp parallel for num_threads(8)
+    for (int i = 0; i < n1; i += 1){
+        int p1 = c1[i] % partitions;
+        buffers[omp_get_thread_num()]->push_back(p1, c1[i]);
+        buffers[omp_get_thread_num()]->manageWriteBuff(p1);
+    }
+    for(int i = 0;i < threads; i++){
+        buffers[i]->flushAll();
+        buffers[i]->mainC = container2;
+    }
+    #pragma omp parallel for num_threads(8)
+    for (int i = 0; i < n2; i += 1){
+        int p1 = c2[i] % partitions;
+        buffers[omp_get_thread_num()]->push_back(p1, c2[i]);
+        buffers[omp_get_thread_num()]->manageWriteBuff(p1);
+    }
+    for(int i = 0;i < threads; i++){
+        buffers[i]->flushAll();
+    }
+    for(int i = 0;i < threads; i++){
+        free(buffers[i]);
+    }
+}
+
+
 void partitionedHash(int * c1, int * c2, int n1, int n2, int partitions, bool serial){
     int pSize1 = (2) * (n1/partitions);
     int pSize2 = (2) * (n2/partitions);
@@ -112,14 +144,18 @@ void partitionedHash(int * c1, int * c2, int n1, int n2, int partitions, bool se
     custom_container buff2(partitions, bufSize, &container2);
     //partition the elements
     auto start = std::chrono::high_resolution_clock::now();
-    hashPartition(c1,c2,n1,n2,partitions,buff1,buff2);
+    if (serial){
+        hashPartition(c1,c2,n1,n2,partitions,buff1,buff2);
+    } else {
+        hashPartitionParallel(c1,c2,n1,n2,partitions,&container1,&container2);
+    }
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
     std::cout << "Partition Time: " << elapsed.count() << " seconds" << std::endl;
     //unordered_set<int> exists(pSize1);
     start = std::chrono::high_resolution_clock::now();
     if (serial){
-        probeTableParallel(container1, container2, pSize1, partitions);    
+        probeTableSerial(container1, container2, pSize1, partitions);    
     } else {
         probeTableParallel(container1, container2, pSize1, partitions);    
     }

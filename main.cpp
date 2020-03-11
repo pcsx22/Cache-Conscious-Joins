@@ -11,6 +11,7 @@
 #include <math.h>
 #include <emmintrin.h>
 #include <string.h>
+#include<chrono>
 #include <omp.h>
 #include "general.h"
 #include "hash_approach.h"
@@ -255,6 +256,7 @@ void readFile(char * file1, char * file2, int * col1, int * col2, int *c1, int *
                 }    
             }
         }
+            __builtin_prefetch(container + *c + 32, 1, 0);
             reader->close();
             reader->clear();
     }
@@ -279,7 +281,11 @@ int main(int argc, char ** argv){
     }
     int c1 = 0;
     int c2 = 0;
+    auto start = std::chrono::high_resolution_clock::now();
     readFile(file1, file2, col1, col2, &c1, &c2, inputSize);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end - start;
+    std::cout << "File Read Time: " << elapsed.count() << " seconds" << std::endl;
     if (strcmp(funcName, "basicNestedLoop") == 0){
         basicLoop(col1, col2, c1, c2);
     } else if (strcmp(funcName, "blockedNestedLoop") == 0){
