@@ -262,8 +262,9 @@ void readFile(char * file1, char * file2, int * col1, int * col2, int *c1, int *
     }
 }
 
+int threads = 1;
 int main(int argc, char ** argv){
-    if (argc < 6){
+    if (argc < 7){
         cout << "Wrong number of argument. Use ./join num_of_elements func_name fileA fileB operator";
         return 0;
     }
@@ -276,16 +277,16 @@ int main(int argc, char ** argv){
     char * file1 = argv[3];
     char * file2 = argv[4];
     char * condition = argv[5];
-    if (argc == 7){
-        pNo = stoi(argv[6]);
+    int threadNum = stoi(argv[6]);
+    threads = threadNum;
+    if (argc == 8){
+        pNo = stoi(argv[7]);
     }
     int c1 = 0;
     int c2 = 0;
-    auto start = std::chrono::high_resolution_clock::now();
+    
     readFile(file1, file2, col1, col2, &c1, &c2, inputSize);
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> elapsed = end - start;
-    std::cout << "File Read Time: " << elapsed.count() << " seconds" << std::endl;
+    auto start = std::chrono::high_resolution_clock::now();
     if (strcmp(funcName, "basicNestedLoop") == 0){
         basicLoop(col1, col2, c1, c2);
     } else if (strcmp(funcName, "blockedNestedLoop") == 0){
@@ -308,6 +309,9 @@ int main(int argc, char ** argv){
     } else {
         cout << "Invalid function name" << endl;
     }
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end - start;
+    std::cout << "Total Time: " << elapsed.count() << " seconds" << std::endl;
     delete[] col1;
     delete[] col2;
     return 0;

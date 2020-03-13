@@ -4,7 +4,6 @@
 #include<chrono>
 #include "general.h"
 using namespace std;
-
 void basicSort(int * col1, int * col2, int c1, int c2){
     int cnt = 0;
     sort(col1, col1 + c1);
@@ -88,13 +87,12 @@ void partitionedSortSerial(int * c1, int * c2, int n1, int n2, int partitions){
 }
 
 void partitionParallel(int * c1, int * c2, int n1, int n2, int partitions, custom_container * container1, custom_container * container2){
-    int threads = 8;
     custom_container * buffers[threads];
     int buffSize = 200;
     for (int i = 0; i < threads; i++){
         buffers[i] = new custom_container(partitions, buffSize, container1);
     }
-    #pragma omp parallel for num_threads(8)
+    #pragma omp parallel for num_threads(threads)
     for (int i = 0; i < n1; i += 1){
         int p1 = c1[i] % partitions;
         buffers[omp_get_thread_num()]->push_back(p1, c1[i]);
@@ -104,7 +102,7 @@ void partitionParallel(int * c1, int * c2, int n1, int n2, int partitions, custo
         buffers[i]->flushAll();
         buffers[i]->mainC = container2;
     }
-    #pragma omp parallel for num_threads(8)
+    #pragma omp parallel for num_threads(threads)
     for (int i = 0; i < n2; i += 1){
         int p1 = c2[i] % partitions;
         buffers[omp_get_thread_num()]->push_back(p1, c2[i]);
@@ -135,7 +133,7 @@ void partitionedSortParallel(int * c1, int * c2, int n1, int n2, int partitions)
     std::cout << "Partition Time: " << elapsed.count() << " seconds" << std::endl;
     int match = 0;
     start = std::chrono::high_resolution_clock::now();
-    #pragma omp parallel for num_threads(8) reduction(+: match)
+    #pragma omp parallel for num_threads(threads) reduction(+: match)
     for (int p = 0; p < partitions; p++){
         int * col1 = container1.getPartition(p);
         int * col2 = container2.getPartition(p);

@@ -1,11 +1,7 @@
-sort_approach: sort_approach.cpp sort_approach.h 
-	g++ -c sort_approach.cpp -o sort_approach.o -fopenmp
-hash_approach: hash_approach.cpp hash_approach.h
-	g++ -c hash_approach.cpp -o hash_approach.o -fopenmp
-build: hash_approach sort_approach
-	g++ main.cpp general.h hash_approach.o sort_approach.o -o main -O3 -march=native -fopenmp
-build_debug: main.cpp hash_approach.cpp sort_approach.cpp general.h
-	g++ main.cpp hash_approach.cpp sort_approach.cpp -o main_debug -g -fopenmp
+build: hash_approach.h sort_approach.h
+	g++ main.cpp general.h hash_approach.cpp sort_approach.cpp -o main -O3 -march=native -fopenmp
+build_debug: hash_approach.h sort_approach.h
+	g++ main.cpp general.h hash_approach.cpp sort_approach.cpp -o main_debug -g -fopenmp
 build_generator:
 	g++ igenerator.cpp -o generate
 run: 

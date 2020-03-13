@@ -4,7 +4,7 @@
 #include<omp.h>
 #include <emmintrin.h>
 using namespace std;
-
+extern int threads;
 class custom_container {
     public:
     int * container;

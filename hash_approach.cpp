@@ -38,7 +38,6 @@ void hashPartition(int * c1, int * c2, int n1, int n2, int partitons, custom_con
     buff2.flushAll();
 }
 void probeTableSerial(custom_container &buff1, custom_container &buff2, int pSize, int partitions){
-    int threadNums = 8;
     unordered_set <int> exists(pSize);
     // exists.set_empty_key(NULL);
     // exists.set_deleted_key(-1);
@@ -70,15 +69,14 @@ void probeTableSerial(custom_container &buff1, custom_container &buff2, int pSiz
 }
 
 void probeTableParallel(custom_container &buff1, custom_container &buff2, int pSize, int partitions){
-    int threadNums = 8;
-    vector<unordered_set<int>* >hList(threadNums);
-    for(int i = 0; i < threadNums; i++){
+    vector<unordered_set<int>* >hList(threads);
+    for(int i = 0; i < threads; i++){
         hList[i] = new unordered_set<int>(pSize);
         // hList[i]->set_empty_key(NULL);
         // hList[i]->set_deleted_key(-1);    
     }
     int cnt = 0;
-    #pragma omp parallel for num_threads(threadNums) reduction(+: cnt)
+    #pragma omp parallel for num_threads(threads) reduction(+: cnt)
     for(int i = 0; i < partitions; i++){
         int * col1 = buff1.getPartition(i);
         int s1 = buff1.getPartitionSize(i);
@@ -103,13 +101,12 @@ void probeTableParallel(custom_container &buff1, custom_container &buff2, int pS
 }
 
 void hashPartitionParallel(int * c1, int * c2, int n1, int n2, int partitions, custom_container * container1, custom_container * container2){
-    int threads = 8;
     custom_container * buffers[threads];
     int buffSize = 200;
     for (int i = 0; i < threads; i++){
         buffers[i] = new custom_container(partitions, buffSize, container1);
     }
-    #pragma omp parallel for num_threads(8)
+    #pragma omp parallel for num_threads(threads)
     for (int i = 0; i < n1; i += 1){
         int p1 = c1[i] % partitions;
         buffers[omp_get_thread_num()]->push_back(p1, c1[i]);
@@ -119,7 +116,7 @@ void hashPartitionParallel(int * c1, int * c2, int n1, int n2, int partitions, c
         buffers[i]->flushAll();
         buffers[i]->mainC = container2;
     }
-    #pragma omp parallel for num_threads(8)
+    #pragma omp parallel for num_threads(threads)
     for (int i = 0; i < n2; i += 1){
         int p1 = c2[i] % partitions;
         buffers[omp_get_thread_num()]->push_back(p1, c2[i]);
