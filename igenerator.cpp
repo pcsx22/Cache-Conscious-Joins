@@ -5,6 +5,7 @@
 #include<vector>
 #include<iostream>
 #include<algorithm>
+#include<math.h>
 using namespace std;
 
 void writeToFile(vector<long> & v, char * filename){
@@ -26,7 +27,7 @@ int main(int argc, char ** argv){
     
     random_device rd;
     mt19937 mt(rd());
-    inputSize = inputSize * 1000;
+    inputSize = pow(10, inputSize);
     vector<long> op(inputSize);
     uniform_real_distribution<double> dist(0, 5*inputSize);
     unordered_set<long> seen;

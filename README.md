@@ -1,23 +1,21 @@
 # Cache-Conscious-Joins
 Build process: make build (generates "main" as executable)
 
-Run ./main num_of_element func_name file1 file2 operator partitionNumber(optional)
+Run ./main power_of_10 func_name file1 file2 operator numberOfThread numberOfPartition
 
-Example: ./main 10000 basicSort file1 file2 =
+Example: ./main 7 partitionedSortParallel file1 file2 = numberOfThread numberOfPartition
+- The following command reads 10^7 elements from file1 and file2 and joins via parallel partitioned sort algorithm
 
-Available operator: "=" only equijoin is supported but this can be extended to >, < operator too.
+- Available operator: "=" only equijoin is supported but this can be extended to >, < operator too.
 
-Available func_name: basicNestedLoop, blockedNestedLoop, partitionedSort, basicSort, partitionedHash, basicHash
+Available func_name: basicNestedLoop, blockedNestedLoop, partitionedSortSerial, partitionedSortParallel, basicSort, partitionedHashSerial, partitionedHash, basicHash
 
-#Generate data
-To generate file1 and file2, do: make build_generator and ./generate num_of_element
-
-Note: Whatever number is provided as num_of_element is multiplied by 1000 so make sure you pass the right number. for eg: 10000 is 1M
-
-Example: ./generate 10000 generates unique 1M elements from 0 to 10M 
+# Generate data
+To generate file1 and file2, do: make build_generator and ./generate power_of_10
+- For example: ./generate 8. This command generates 2 set of 10^8 unique and random elements and writes them in files file1 and file2
 
 # Get Statistics 
-make stat arg=num_element func_name=function_name
+make stat arg=num_element func_name=function_name p=parition_number threads=thread_number
 
-Example: make stat arg=10000 func_name=basicSort
+Example: make stat arg=7 func_name=partitionedSortParallel p=1021 threads=4
 		

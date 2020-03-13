@@ -27,9 +27,6 @@ void basicSort(int * col1, int * col2, int c1, int c2){
 
 void partition(int * c1, int * c2, int n1, int n2, int partitons, custom_container & buff1, custom_container & buff2){
     int p1;
-    int p2;
-    int p3;
-    int p4;
     for (int i = 0; i < n1; i += 1){
         p1 = c1[i] % partitons;
         buff1.push_back(p1, c1[i]);

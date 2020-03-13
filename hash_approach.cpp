@@ -21,8 +21,6 @@ void basicHash(int * c1, int * c2, int n1, int n2){
 }
 
 void hashPartition(int * c1, int * c2, int n1, int n2, int partitons, custom_container & buff1, custom_container & buff2){
-    int pSize1 = (10)*(n1/partitons);
-    int pSize2 = (10)*(n2/partitons);
     int p;
     for (int i = 0; i < n1; i++){
         p = c1[i] % partitons;
