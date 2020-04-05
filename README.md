@@ -1,4 +1,16 @@
 # Cache-Conscious-Joins
+** The cuda version of algorithm are present in the cuda folder.
+# Cuda build
+1. cd into cuda folder
+2. Do make build. This generates "main_gpu" binary
+3. Run ./main_gpu power_of_10 func_name file1 file2 operator numberOfThread(redundant but required) numberOfPartition
+
+** make sure file1 and file2 exists 
+
+Available func_name: partitionedSortParallel, sortParallel (un-partitioned), partitionedHashParallel
+
+
+# CPU build
 Build process: make build (generates "main" as executable)
 
 Run ./main power_of_10 func_name file1 file2 operator numberOfThread numberOfPartition

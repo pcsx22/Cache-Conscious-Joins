@@ -284,7 +284,6 @@ int main(int argc, char ** argv){
     }
     int c1 = 0;
     int c2 = 0;
-    
     readFile(file1, file2, col1, col2, &c1, &c2, inputSize);
     auto start = std::chrono::high_resolution_clock::now();
     if (strcmp(funcName, "basicNestedLoop") == 0){
@@ -311,7 +310,7 @@ int main(int argc, char ** argv){
     }
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
-    std::cout << "Total Time: " << elapsed.count() << " seconds" << std::endl;
+    std::cout << "Total Time: " << elapsed.count() << " ms" << std::endl;
     delete[] col1;
     delete[] col2;
     return 0;
