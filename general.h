@@ -2,9 +2,31 @@
 #include <vector>
 #include <iostream>
 #include<omp.h>
+#include<cstring>
 #include <emmintrin.h>
+#include <smmintrin.h>  
+#include <x86intrin.h>
+#include <stdlib.h>
 using namespace std;
 extern int threads;
+#ifndef NEXT_POW_2
+/** 
+ *  compute the next number, greater than or equal to 32-bit unsigned v.
+ *  taken from "bit twiddling hacks":
+ *  http://graphics.stanford.edu/~seander/bithacks.html
+ */
+#define NEXT_POW_2(V)                           \
+    do {                                        \
+        V--;                                    \
+        V |= V >> 1;                            \
+        V |= V >> 2;                            \
+        V |= V >> 4;                            \
+        V |= V >> 8;                            \
+        V |= V >> 16;                           \
+        V++;                                    \
+    } while(0)
+#endif
+
 class custom_container {
     public:
     int * container;
@@ -20,8 +42,12 @@ class custom_container {
     }
     custom_container(int partition, int bufSize, unordered_map<int, vector<int> > * p){
         this->bufSize = bufSize;
+        NEXT_POW_2(this->bufSize);
         this->partition = partition;
-        this->container = new int[partition * bufSize];
+        if(posix_memalign((void **)&this->container, 64, partition * this->bufSize * sizeof(int)) != 0)
+            throw std::bad_alloc();
+        std::memset(this->container, 0, partition * this->bufSize * sizeof(int));
+        // this->container = new int[partition * bufSize];
         this->head = new int[partition];
         for (int i = 0;i < partition; i++){
             this->head[i] = 0;
@@ -30,8 +56,10 @@ class custom_container {
     }
     custom_container(int partition, int bufSize, custom_container * c){
         this->bufSize = bufSize;
+        NEXT_POW_2(this->bufSize);
         this->partition = partition;
-        this->container = new int[partition * bufSize];
+        if(posix_memalign((void **)&this->container, 64, partition * this->bufSize * sizeof(int)) != 0)
+            throw std::bad_alloc();
         this->head = new int[partition];
         for (int i = 0;i < partition; i++){
             this->head[i] = 0;
@@ -51,18 +79,24 @@ class custom_container {
         int j = __atomic_add_fetch(this->head + partition, n, __ATOMIC_ACQUIRE);
         int h = j - n;
         p = p + h;
-        for(int i = 0; i < n; i++){
+        int i = 0;
+        for(;i < n; i += 1){
             //p[h++] = els[i];
+            //__m128i * d1 = (__m128i*) p;
+            //__m128i s2 = _mm_loadu_si128((__m128i *) (els + i));
+            //_mm_stream_si128(d1, s2);
             _mm_stream_si32(p, els[i]);
-            p++;
-            //h++;
+            p += 1;
         }
+        // for(;i<n;i++){
+        //     _mm_stream_si32(p, els[i]);
+        //     p += 1;
+        // }
     }
     
 
     void flush(int p){
         int * pAddr = this->container + p * this->bufSize;
-
         if (this->head[p] > 0)
             this->mainC->insert(p, pAddr, this->head[p]);
         this->head[p] = 0;
@@ -97,6 +131,10 @@ class custom_container {
         return this->head[partition];
     }
 
+    void reset(){
+        memset(this->head, 0, sizeof(int) * this->partition);
+    }
+
     ~custom_container(){
         free(this->container);
         free(this->head);
@@ -104,24 +142,6 @@ class custom_container {
 };
 
 #define HASH_BIT_MODULO(K, MASK, NBITS) (((K) & MASK) >> NBITS)
-
-#ifndef NEXT_POW_2
-/** 
- *  compute the next number, greater than or equal to 32-bit unsigned v.
- *  taken from "bit twiddling hacks":
- *  http://graphics.stanford.edu/~seander/bithacks.html
- */
-#define NEXT_POW_2(V)                           \
-    do {                                        \
-        V--;                                    \
-        V |= V >> 1;                            \
-        V |= V >> 2;                            \
-        V |= V >> 4;                            \
-        V |= V >> 8;                            \
-        V |= V >> 16;                           \
-        V++;                                    \
-    } while(0)
-#endif
 
 inline 
 uint32_t 

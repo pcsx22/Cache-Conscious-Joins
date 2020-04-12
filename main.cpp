@@ -292,16 +292,25 @@ int main(int argc, char ** argv){
         loopOverBlock(col1, col2, c1, c2, cacheSize);
     } else if (strcmp(funcName, "partitionedSortSerial") == 0){
         partitionedSortSerial(col1, col2, c1, c2, pNo);
+    } else if (strcmp(funcName, "partitionedSortSerialSIMD") == 0){
+        partitionedSortSerialSIMD(col1, col2, c1, c2, pNo);
     }
     else if (strcmp(funcName, "partitionedSortParallel") == 0){
         partitionedSortParallel(col1, col2, c1, c2, pNo);
+    } else if (strcmp(funcName, "partitionedSortParallelSIMD") == 0){
+        partitionedSortParallelSIMD(col1, col2, c1, c2, pNo);
     }
     else if (strcmp(funcName, "basicSort") == 0){
         basicSort(col1, col2, c1, c2);
     } else if (strcmp(funcName, "partitionedHashSerial") == 0) {
-      partitionedHash(col1, col2, c1, c2, pNo, true);  
+      partitionedHash(col1, col2, c1, c2, pNo, true, false);  
     } else if (strcmp(funcName, "partitionedHashParallel") == 0) {
-      partitionedHash(col1, col2, c1, c2, pNo, false);  
+      partitionedHash(col1, col2, c1, c2, pNo, false, false);  
+    } else if (strcmp(funcName, "partitionedHashSerialSIMD") == 0) {
+      partitionedHash(col1, col2, c1, c2, pNo, true, true);  
+    }
+    else if (strcmp(funcName, "partitionedHashParallelSIMD") == 0) {
+      partitionedHash(col1, col2, c1, c2, pNo, false, true);  
     }
     else if (strcmp(funcName, "basicHash") == 0) {
       basicHash(col1, col2, c1, c2);  

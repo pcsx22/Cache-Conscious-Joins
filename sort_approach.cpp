@@ -2,7 +2,11 @@
 #include<algorithm>
 #include<omp.h>
 #include<chrono>
+#include<cstring>
+#include<stdio.h>
 #include "general.h"
+#include "simd/common.h"
+#include "simd/simd_sort.h"
 using namespace std;
 void basicSort(int * col1, int * col2, int c1, int c2){
     int cnt = 0;
@@ -42,8 +46,8 @@ void partition(int * c1, int * c2, int n1, int n2, int partitons, custom_contain
 }
 
 void partitionedSortSerial(int * c1, int * c2, int n1, int n2, int partitions){
-    int pSize1 = (2) * (n1/partitions);
-    int pSize2 = (2) * (n2/partitions);
+    int pSize1 = (3/2) * (n1/partitions);
+    int pSize2 = (3/2) * (n2/partitions);
     int bufSize = (128*256*3/partitions);
     custom_container container1(partitions, pSize1, (custom_container *)NULL);
     custom_container container2(partitions, pSize2, (custom_container *)NULL);
@@ -83,6 +87,56 @@ void partitionedSortSerial(int * c1, int * c2, int n1, int n2, int partitions){
     cout << "Matched: " << match <<endl;
 }
 
+void partitionedSortSerialSIMD(int * c1, int * c2, int n1, int n2, int partitions){
+    int pSize1 = n1/partitions;
+    int pSize2 = n2/partitions;
+    int bufSize = (128*256*3/partitions);
+    custom_container container1(partitions, pSize1, (custom_container *)NULL);
+    custom_container container2(partitions, pSize2, (custom_container *)NULL);
+    custom_container buff1(partitions, bufSize, &container1);
+    custom_container buff2(partitions, bufSize, &container2);
+    //partition the elements
+    auto start = std::chrono::high_resolution_clock::now();
+    partition(c1,c2,n1,n2,partitions,buff1,buff2);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end - start;
+    std::cout << "Partition Time: " << elapsed.count() << " seconds" << std::endl;
+    int match = 0;
+    start = std::chrono::high_resolution_clock::now();
+    for (int p = 0; p < partitions; p++){
+        int * col1 = container1.getPartition(p);
+        int * col2 = container2.getPartition(p);
+        int head1 = container1.getPartitionSize(p);
+        int head2 = container2.getPartitionSize(p);
+        int aligned_head1 = head1;
+        int aligned_head2 = head2;
+        NEXT_POW_2(aligned_head1); NEXT_POW_2(aligned_head2);
+        //copy(col1, col1 + head1, aligned_col1);
+        //copy(col2, col2 + head2, aligned_col2);
+        avx2::SIMDSort(aligned_head1, col1);
+        avx2::SIMDSort(aligned_head2, col2);
+        col1  = col1 + aligned_head1 - head1;
+        col2 =  col2 + aligned_head2 - head2;
+        int i = 0; int j = 0;
+        while (i < head1 && j < head2){
+            if (col1[i] < col2[j]){
+                i++;
+            } else if (col1[i] > col2[j]){
+                j++;
+            } else{
+                match++;
+                j++;
+                i++;
+            }
+        }
+    }
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    std::cout << "Sort + merge Time: " << elapsed.count() << " seconds" << std::endl;
+    cout << "Matched: " << match <<endl;
+}
+
+
 void partitionParallel(int * c1, int * c2, int n1, int n2, int partitions, custom_container * container1, custom_container * container2){
     custom_container * buffers[threads];
     int buffSize = 200;
@@ -120,8 +174,6 @@ void partitionedSortParallel(int * c1, int * c2, int n1, int n2, int partitions)
     int bufSize = (128*256/partitions);
     custom_container container1(partitions, pSize1, (custom_container *)NULL);
     custom_container container2(partitions, pSize2, (custom_container *)NULL);
-    //custom_container buff1(partitions, bufSize, &container1);
-    //custom_container buff2(partitions, bufSize, &container2);
     //partition the elements
     auto start = std::chrono::high_resolution_clock::now();
     partitionParallel(c1,c2,n1,n2,partitions,&container1,&container2);
@@ -138,6 +190,52 @@ void partitionedSortParallel(int * c1, int * c2, int n1, int n2, int partitions)
         int head2 = container2.getPartitionSize(p);
         sort(col1, col1 + head1);
         sort(col2, col2 + head2);
+        int i = 0; int j = 0;
+        while (i < head1 && j < head2){
+            if (col1[i] < col2[j]){
+                i++;
+            } else if (col1[i] > col2[j]){
+                j++;
+            } else{
+                match++;
+                j++;
+                i++;
+            }
+        }
+    }
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    std::cout << "Sort + Merge Time: " << elapsed.count() << " seconds" << std::endl;
+    cout << "Matched: " << match <<endl;
+}
+
+void partitionedSortParallelSIMD(int * c1, int * c2, int n1, int n2, int partitions){
+    int pSize1 = (5) * (n1/(partitions));
+    int pSize2 = (5) * (n2/(partitions));
+    int bufSize = (128*256/partitions);
+    custom_container container1(partitions, pSize1, (custom_container *)NULL);
+    custom_container container2(partitions, pSize2, (custom_container *)NULL);
+    //partition the elements
+    auto start = std::chrono::high_resolution_clock::now();
+    partitionParallel(c1,c2,n1,n2,partitions,&container1,&container2);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end - start;
+    std::cout << "Partition Time: " << elapsed.count() << " seconds" << std::endl;
+    int match = 0;
+    start = std::chrono::high_resolution_clock::now();
+    #pragma omp parallel for num_threads(threads) reduction(+: match)
+    for (int p = 0; p < partitions; p++){
+        int * col1 = container1.getPartition(p);
+        int * col2 = container2.getPartition(p);
+        int head1 = container1.getPartitionSize(p);
+        int head2 = container2.getPartitionSize(p);
+        int aligned_head1 = head1;
+        int aligned_head2 = head2;
+        NEXT_POW_2(aligned_head1); NEXT_POW_2(aligned_head2);
+        avx2::SIMDSort(aligned_head1, col1);
+        avx2::SIMDSort(aligned_head2, col2);
+        col1  = col1 + aligned_head1 - head1;
+        col2 =  col2 + aligned_head2 - head2;
         int i = 0; int j = 0;
         while (i < head1 && j < head2){
             if (col1[i] < col2[j]){
