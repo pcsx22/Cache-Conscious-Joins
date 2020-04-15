@@ -40,23 +40,11 @@ class custom_container {
         this->container = NULL;
         this->head = NULL;
     }
-    custom_container(int partition, int bufSize, unordered_map<int, vector<int> > * p){
-        this->bufSize = bufSize;
-        NEXT_POW_2(this->bufSize);
-        this->partition = partition;
-        if(posix_memalign((void **)&this->container, 64, partition * this->bufSize * sizeof(int)) != 0)
-            throw std::bad_alloc();
-        std::memset(this->container, 0, partition * this->bufSize * sizeof(int));
-        // this->container = new int[partition * bufSize];
-        this->head = new int[partition];
-        for (int i = 0;i < partition; i++){
-            this->head[i] = 0;
-        }
-        this->p = p;
-    }
+    
     custom_container(int partition, int bufSize, custom_container * c){
         this->bufSize = bufSize;
-        NEXT_POW_2(this->bufSize);
+        if (c == NULL)
+            NEXT_POW_2(this->bufSize);
         this->partition = partition;
         if(posix_memalign((void **)&this->container, 64, partition * this->bufSize * sizeof(int)) != 0)
             throw std::bad_alloc();

@@ -169,8 +169,8 @@ void partitionParallel(int * c1, int * c2, int n1, int n2, int partitions, custo
 
 
 void partitionedSortParallel(int * c1, int * c2, int n1, int n2, int partitions){
-    int pSize1 = (5) * (n1/(partitions));
-    int pSize2 = (5) * (n2/(partitions));
+    int pSize1 = (3/2) * (n1/(partitions));
+    int pSize2 = (3/2) * (n2/(partitions));
     int bufSize = (128*256/partitions);
     custom_container container1(partitions, pSize1, (custom_container *)NULL);
     custom_container container2(partitions, pSize2, (custom_container *)NULL);

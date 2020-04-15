@@ -74,7 +74,6 @@ void sortParallel(int * c1, int * c2, int n1, int n2, int partitions){
     // cudaEventSynchronize(stop);
     
     // cudaEventElapsedTime(&milliseconds, start, stop);
-    
     cout << "Matched - " <<  match << endl;
 }
 

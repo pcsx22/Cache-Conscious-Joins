@@ -7,7 +7,6 @@
 #include <thrust/set_operations.h>
 #include <thrust/sort.h>
 #include <thrust/copy.h>
-#include <stdio.h>
 
 __global__ void partitionKernelHash(int * c1, int * c2,int n1, int n2, int partitions, int blocks, CustomContainer * containers1, CustomContainer * containers2){
     int blockSize1 = n1 / blocks;
@@ -24,29 +23,32 @@ __global__ void partitionKernelHash(int * c1, int * c2,int n1, int n2, int parti
         containers2->push_back(p, 0, c2[i]);
     }
 }
-__global__ void probe(CustomContainer * container1, CustomContainer * container2, int partitions, int * finalCount){
+__global__ void probeBlocked(CustomContainer * container1, CustomContainer * container2, int partitions, int * finalCount){
     __shared__ int countArr[256];
-    int * col1 = container1->getPartition(blockIdx.x);
-    int * col2 = container2->getPartition(blockIdx.x);
-    int n1 = container1->getPartitionSize(blockIdx.x);
-    int n2 = container2->getPartitionSize(blockIdx.x);
-    int idx = threadIdx.x;
-    int count = 0;
-    for(int i = idx; i < n1; i += blockDim.x){
-        for (int j = 0; j < n2; j++){
-            count += (col1[i] == col2[j]);
+    for(int pNo = blockIdx.x; pNo < partitions; pNo += gridDim.x){ 
+        int * col1 = container1->getPartition(pNo);
+        int * col2 = container2->getPartition(pNo);
+        int n1 = container1->getPartitionSize(pNo);
+        int n2 = container2->getPartitionSize(pNo);
+        int idx = threadIdx.x;
+        int count = 0;
+        for(int i = idx; i < n1; i += blockDim.x){
+            for (int j = 0; j < n2; j++){
+                count += (col1[i] == col2[j]);
+            }
+        }
+        countArr[threadIdx.x] = count;
+        __syncthreads();
+        if(threadIdx.x == 0){
+            count = 0;
+            for(int i = 0; i < blockDim.x; i++){
+                count += countArr[i];
+            }
+            //printf("%d\n", count);
+            atomicAdd(finalCount, count);
         }
     }
-    countArr[threadIdx.x] = count;
-    __syncthreads();
-    if(threadIdx.x == 0){
-        count = 0;
-        for(int i = 0; i < blockDim.x; i++){
-            count += countArr[i];
-        }
-        //printf("%d\n", count);
-        atomicAdd(finalCount, count);
-    }
+    
 }
 
 void partitionedHash(int * c1, int * c2, int n1, int n2, int partitions, bool serial) { 
@@ -54,8 +56,8 @@ void partitionedHash(int * c1, int * c2, int n1, int n2, int partitions, bool se
     thrust::device_vector<int> dCol2(c2, c2 + n2);
     int blocks = 80;
     int blockSize = n1/1;
-    CustomContainer * containers1 = new CustomContainer(2 * n1/partitions, partitions, 1, NULL);
-    CustomContainer * containers2 = new CustomContainer(2 * n2/partitions, partitions, 1, NULL);
+    CustomContainer * containers1 = new CustomContainer(n1/partitions, partitions, 1, NULL);
+    CustomContainer * containers2 = new CustomContainer(n2/partitions, partitions, 1, NULL);
     CustomContainer * deviceContainers1 = 0;
     CustomContainer * deviceContainers2 = 0;
     cudaMalloc(&deviceContainers1, sizeof(CustomContainer));
@@ -74,7 +76,7 @@ void partitionedHash(int * c1, int * c2, int n1, int n2, int partitions, bool se
         std::cout << "Error: " << e.what() << std::endl;
     }
     cudaThreadSynchronize();
-    probe<<<partitions, 256>>>(deviceContainers1,deviceContainers2,partitions, finalCount); 
+    probeBlocked<<<80, 256>>>(deviceContainers1,deviceContainers2,partitions, finalCount);
     cudaThreadSynchronize();
     int finalCountHost = 0;
     cudaMemcpy(&finalCountHost, finalCount, sizeof(int), cudaMemcpyDeviceToHost);
