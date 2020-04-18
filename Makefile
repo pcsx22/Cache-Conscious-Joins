@@ -7,9 +7,9 @@ all: simd_sort build
 simd_sort:$(SIMD_DEP)
 	g++ -c $(B_FLAGS) $(SIMD_DEP)
 build: $(SIMD_OBJECT_FILES) hash_approach.h sort_approach.h general.h
-	g++ $(SIMD_OBJECT_FILES) main.cpp general.h hash_approach.cpp sort_approach.cpp -o main -O3 -mavx2 -march=native -Wall -fopenmp
+	g++ $(SIMD_OBJECT_FILES) main.cpp general.h hash_approach.cpp sort_approach.cpp -march=native -mavx2 -fopenmp -O3 -o main
 build_debug: $(SIMD_OBJECT_FILES) hash_approach.h sort_approach.h general.h
-	g++ $(SIMD_OBJECT_FILES) main.cpp general.h hash_approach.cpp sort_approach.cpp -o main_debug -march=native -mavx2 -Wall -g -fopenmp
+	g++ $(SIMD_OBJECT_FILES) main.cpp general.h hash_approach.cpp sort_approach.cpp -o main_debug -march=native -mavx2 -g -fopenmp
 build_generator:
 	g++ igenerator.cpp -o generate
 run: 

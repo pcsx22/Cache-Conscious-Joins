@@ -61,7 +61,7 @@ class custom_container {
         this->head[partition] += 1;
     }
 
-    void insert(int partition, int * els, int n){
+    void insertData(int partition, int * els, int n){
         int * p = this->getPartition(partition);
         //int& h = this->head[partition];
         int j = __atomic_add_fetch(this->head + partition, n, __ATOMIC_ACQUIRE);
@@ -69,24 +69,16 @@ class custom_container {
         p = p + h;
         int i = 0;
         for(;i < n; i += 1){
-            //p[h++] = els[i];
-            //__m128i * d1 = (__m128i*) p;
-            //__m128i s2 = _mm_loadu_si128((__m128i *) (els + i));
-            //_mm_stream_si128(d1, s2);
-            _mm_stream_si32(p, els[i]);
+            *p = els[i];
             p += 1;
         }
-        // for(;i<n;i++){
-        //     _mm_stream_si32(p, els[i]);
-        //     p += 1;
-        // }
     }
     
 
     void flush(int p){
         int * pAddr = this->container + p * this->bufSize;
         if (this->head[p] > 0)
-            this->mainC->insert(p, pAddr, this->head[p]);
+            this->mainC->insertData(p, pAddr, this->head[p]);
         this->head[p] = 0;
     }
     
@@ -99,15 +91,6 @@ class custom_container {
     void flushAll(){
         for(int i = 0;i < this->partition; i++){
             this->flush(i);
-        }
-    }
-
-    void manageWrite(int partition, int hashValue){
-        if (this->head[partition] == this->bufSize){
-            int * pAddr = this->container + partition * this->bufSize;
-            auto& m = *(this->p);
-            m[hashValue].insert(m[hashValue].end(), pAddr, pAddr + this->bufSize);
-            this->head[partition] = 0;
         }
     }
 
@@ -157,7 +140,7 @@ class CustomHashTable{
         this->mask = (nSize-1) << 18;
     }
 
-    void insert(int el){
+    void Data(int el){
         uint32_t idx = HASH_BIT_MODULO(el, this->mask, 18);
         if (this->container[idx] != 0){
             while (this->container[idx] != 0){

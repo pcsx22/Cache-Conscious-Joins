@@ -90,7 +90,7 @@ void partitionedSortSerial(int * c1, int * c2, int n1, int n2, int partitions){
 void partitionedSortSerialSIMD(int * c1, int * c2, int n1, int n2, int partitions){
     int pSize1 = n1/partitions;
     int pSize2 = n2/partitions;
-    int bufSize = (128*256*3/partitions);
+    int bufSize = (128*256*2/partitions);
     custom_container container1(partitions, pSize1, (custom_container *)NULL);
     custom_container container2(partitions, pSize2, (custom_container *)NULL);
     custom_container buff1(partitions, bufSize, &container1);
@@ -111,8 +111,6 @@ void partitionedSortSerialSIMD(int * c1, int * c2, int n1, int n2, int partition
         int aligned_head1 = head1;
         int aligned_head2 = head2;
         NEXT_POW_2(aligned_head1); NEXT_POW_2(aligned_head2);
-        //copy(col1, col1 + head1, aligned_col1);
-        //copy(col2, col2 + head2, aligned_col2);
         avx2::SIMDSort(aligned_head1, col1);
         avx2::SIMDSort(aligned_head2, col2);
         col1  = col1 + aligned_head1 - head1;
