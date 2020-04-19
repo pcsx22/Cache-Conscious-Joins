@@ -11,7 +11,7 @@ Available func_name: partitionedSortParallel, sortParallel (un-partitioned), par
 
 
 # CPU build
-Build process: make build (generates "main" as executable)
+Build process: Run make (generates "main" as executable). Run make build_generator to create data generator. Make sure file1 and file2 exists before execution.
 
 Run ./main power_of_10 func_name file1 file2 operator numberOfThread numberOfPartition
 
